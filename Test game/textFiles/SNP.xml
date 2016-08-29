@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<ArrayOfTxtData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <txtData>
+    <label>SpeedAndPause</label>
+    <text>this is fast.P030NS009this is slower.P030NS000thisP012 is a pause.</text>
+  </txtData>
+  <txtData>
+    <label>shortTest</label>
+    <text>short and sweetW</text>
+  </txtData>
+</ArrayOfTxtData>
