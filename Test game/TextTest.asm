@@ -3,6 +3,21 @@
   .inesmap 0   ; mapper 0 = NROM, no bank swapping
   .inesmir 1   ; background mirroring
   
+;;;;;;;;;;;;;;;
+
+;	TextTest.asm
+;
+;	main game program
+;	
+;	John Welter
+;	2016
+;
+;	created to showcase use of the text and controller engines, mostly the former
+;
+;	with helpful code from the nintendoage brewery forums
+;
+
+
 
 ;;;;;;;;;;;;;;;
 
@@ -16,52 +31,52 @@ tile_loader_stop  .rs 1     ;how many tiles to load
 
 tile_loader_mark  .rs 2
 
-pointer1  .rs 2                 ;pointer to the background information
+pointer1  .rs 2              ;pointer to the background information
 pointer2  .rs 2
  
-joypad1 .rs 1           ;button states for the current frame
-joypad1_old .rs 1       ;last frame's button states
-joypad1_pressed .rs 1   ;current frame's off_to_on transitions
-joypad1_held	.rs 1	;current frame's held buttons
-joypad1_released .rs 1	;current frame's released buttons
+joypad1 .rs 1           	;button states for the current frame
+joypad1_old .rs 1       	;last frame's button states
+joypad1_pressed .rs 1   	;current frame's off_to_on transitions
+joypad1_held	.rs 1		;current frame's held buttons
+joypad1_released .rs 1		;current frame's released buttons
 
 sleeping  .rs 1             ;run main program once per frame
 updating_background  .rs 1  ;disable the NMI updates while updating the background
 
-PartialEnableFlag	 .rs 1
+PartialEnableFlag	 .rs 1	;flag to enable partial bank replacemnet
 
-scoreOnes 		  .rs 1
-scoreTens		  .rs 1
-scoreHundreds	  .rs 1
+scoreOnes 		  .rs 1		;ones value
+scoreTens		  .rs 1		;tens value
+scoreHundreds	  .rs 1		;hundreds value
 
-txtPtr		  .rs 2
-txtChrCount	  .rs 1
-txtLnBrkOff	  .rs 1
-txtLinCount	  .rs 1
-txtFrmCount	  .rs 1
-txtLoc		  .rs 2
-txtResetFlag  .rs 1
-txtDisableFlag .rs 1
-txtResetInit  .rs 1
-txtCurrentTxt .rs 2
-txtTemp		  .rs 1
-txtStart	  .rs 2
-txtSpeed	  .rs 1
-txtDefaultSpeed .rs 1
-txtMaxChr	  .rs 1
-txtMaxLin	  .rs 1
-txtInputTileLoc	.rs 2
-txtPauseFlag	.rs 1
-txtPrepareUnpause .rs 1
+txtPtr		  .rs 2			;pointer to current byte in text
+txtChrCount	  .rs 1			;counter for printed characters in a line
+txtLnBrkOff	  .rs 1			;line break offset for premature line breaks 
+txtLinCount	  .rs 1			;counter for line count
+txtFrmCount	  .rs 1			;frame count between parses
+txtLoc		  .rs 2			;location of printhead 
+txtResetFlag  .rs 1			;flag for text box reset- if on, the box is currently resetting (set to 3, counts down)
+txtDisableFlag .rs 1		;flag for text disable- if on, text is not printed 	
+txtResetInit  .rs 1			;I don't quite remember what this was for- used to initialize text box reset 
+txtCurrentTxt .rs 2			;Holds beggining address of current text block 
+txtTemp		  .rs 1			;temp value for text engine 	
+txtStart	  .rs 2			;holds value of beggining of text box 
+txtSpeed	  .rs 1			;speed of the text 
+txtDefaultSpeed .rs 1		;default speed to jump back to 
+txtMaxChr	  .rs 1			;max amount of characters in a box 
+txtMaxLin	  .rs 1			;max amount of lines in a box 
+txtInputTileLoc	.rs 2		;tile location for input wait tile 
+txtPauseFlag	.rs 1		;flag for pause- if on, text box is waiting for input 
+txtPrepareUnpause .rs 1		;prepares to reset pause flag once input is given 
 
 pointer	      .rs 2
 
 ;TXTSTARTHI	   = $22
 ;TXTSTARTLO	   = $A8
 ;TXTMAXLIN	   = $10
-TXTFAST	   = $03
-TXTMED	   = $06
-TXTSLOW	   = $09
+TXTFAST	   = $03		;;fast text speed
+TXTMED	   = $06		;;medium text speed
+TXTSLOW	   = $09		;;slow text speed
 TXTPAUSETILE = $3B 		;;tile used for input wait
 TXTENDTILE = $3D		;;tile used fot end wait
 TXTNORMALTILE = $53		;;tile replaced by pause tiles
@@ -75,7 +90,7 @@ CONTROLLER_DOWN = $04
 CONTROLLER_LEFT = $02
 CONTROLLER_RIGHT = $01
 STATETITLE     = $00  ; displaying title screen
-STATEPLAYING   = $01  ; move paddles/ball, check for collisions
+STATEPLAYING   = $01  ; game in progress
 STATEGAMEOVER  = $02  ; displaying game over screen
   
 
@@ -140,36 +155,39 @@ LoadPalettesLoop:
   JSR SetBackground
   JSR LoadBackground
   
-  JSR TxtDisable
+  ;initializes text engine and variables
   
-  LDA #$22
+  JSR TxtDisable	;disable the text 
+  
+  LDA #$22			
   LDX #$A8
   
-  JSR TxtSetStart
-  JSR TxtSetLoc
+  JSR TxtSetStart	;sets the text box to start at loaction 22A8 on the screen
+  JSR TxtSetLoc		;sets print head to the same location
   
-  LDA #$23
+  LDA #$23	
   LDX #$59
   
-  JSR TxtSetInputTileLoc
+  JSR TxtSetInputTileLoc	;sets input tile loaction to 2359 on the screen
   
   LDA #$03
   
-  JSR TxtSetMaxLin
+  JSR TxtSetMaxLin			;sets max line count to 3
  
-  LDA #$10
+  LDA #$10					
   
-  JSR TxtSetMaxChr
+  JSR TxtSetMaxChr			;sets max charatcer count per line to 16
   
   LDA #TXTFAST
   
-  STA txtDefaultSpeed
-  JSR TxtSetSpeed
+  STA txtDefaultSpeed		;sets default speed to fast (3 frames between parses)
+  JSR TxtSetSpeed			;sets current speed to same speed
   
-  LDA #HIGH(SpeedAndPause)
-  LDX #LOW(SpeedAndPause)
+  LDA #HIGH(SpeedAndPause)	
+  LDX #LOW(SpeedAndPause)	
   
-  JSR TxtLoad
+  JSR TxtLoad				;loads test text (located under label SpeedAndPause in the included 
+							;.i or .asm file created in the text creator, in this case textFiles/snp.i )
   
   ;LDA #TXTSTARTHI
   ;STA txtLoc+1
@@ -216,7 +234,7 @@ Forever:
   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
-;--------THE FUCKIN' NMI ROUTINE, RECOGNIZE BITCH!------------;
+;--------			 THE NMI ROUTINE			  ------------;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 NMI:
@@ -238,11 +256,15 @@ nmi_start:
   BNE skip_graphics_updates
   
   
-  JSR TxtReset
-  JSR TxtDefaultProcess
-  LDA txtPrepareUnpause
+;
+; text engine calls, once per frame
+;
+
+  JSR TxtReset				;resets, if reset flag is on		
+  JSR TxtDefaultProcess		;parses, prints, waits
+  LDA txtPrepareUnpause		;check if A buttoin was pressed during a pause
   CMP #$01
-  BNE UnpauseDone
+  BNE UnpauseDone			;if not- or it wasn't paused to begin with- finish text calls.
   
   JSR TxtUnpause
   LDA #$00
@@ -250,6 +272,10 @@ nmi_start:
   
 UnpauseDone:
   
+
+;
+; text engine finished
+;
   ;;JSR LoadPartialBank
   ;;JSR DrawScore
    
@@ -281,6 +307,10 @@ skip_graphics_updates:
 handle_input:
 
 ReadUp:
+	
+  ;;if UP is pressed
+  ;;enables text to print if currently disabled
+
   LDA joypad1_pressed	;Up
   AND #CONTROLLER_UP
   BEQ ReadUpDone
@@ -293,6 +323,10 @@ ReadUpDone:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ReadDown:
+
+  ;;if DOWN is pressed
+  ;;disables text if currently enabled, and not waiting for input
+
   LDA joypad1_pressed	;Down
   AND #CONTROLLER_DOWN
   BEQ ReadDownDone
@@ -308,6 +342,10 @@ ReadDownDone:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ReadRight:
+
+  ;;if RIGHT is pressed
+  ;;do nothing
+	
   LDA joypad1_pressed	;Right
   AND #CONTROLLER_RIGHT
   BEQ ReadRightDone
@@ -318,6 +356,10 @@ ReadRightDone:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ReadLeft:
+  
+  ;;if LEFT is pressed
+  ;;do nothing
+   
   LDA joypad1_pressed	;Left
   AND #CONTROLLER_LEFT
   BEQ ReadLeftDone
@@ -328,6 +370,10 @@ ReadLeftDone:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ReadA:
+
+  ;;if A is pressed
+  ;;if the text is currently paused (waiting for input), unpause
+
   LDA joypad1_pressed
   AND #CONTROLLER_A
   BEQ ReadADone
@@ -580,6 +626,9 @@ DrawScore:
   RTS
 
 ;-------------------------------------------------  
+
+;;include the two external engines
+
 	.include "extEngines/TextEngine.asm"
 	.include "extEngines/controller_engine.asm"
 ;-------------------------------------------------
@@ -598,7 +647,7 @@ CHR_Data:
   
 REP_DATA:
 
-  .incbin "chrData/TextRep.chr"
+  .incbin "chrData/TextRep.chr" ;replacement tiles for background
  
 
   
@@ -615,7 +664,7 @@ REP_DATA:
   
 Sprite_Data:
 
-	.db $00, $00
+	.db $00, $00			;sprite address in the PPU
 	
 	.incbin "chrData/CharSprites.chr"
 
@@ -632,14 +681,14 @@ Sprite_Data:
   .org $E000
   
 backgroundA:
-  .incbin "nameTables/BackgroundBA.bin"
+  .incbin "nameTables/BackgroundBA.bin"	;background for the game
 ;;.incbin "nameTables/yomiTitle.bin"
   palette:
   .db $37,$30,$10,$0F,  $37,$30,$11,$0F,  $37,$30,$16,$0F,  $37,$30,$2A,$0F   ;;background palette
   .db $37,$30,$2C,$0F,  $37,$30,$26,$0F,  $37,$1C,$15,$14,  $37,$02,$38,$3C   ;;sprite palette
   
   
-LoaderSpecs:
+LoaderSpecs:			;; loader specs for partial bank replacements
   .db $1B,$00,$40
   .db $1B,$40,$40
   .db $1B,$80,$40
@@ -649,8 +698,13 @@ LoaderSpecs:
 
 GraphicsPointers:
 
-	.word Sprite_Data, CHR_Data
+	.word Sprite_Data, CHR_Data		;pointers to tile data
 	
+	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	;;text file for this example. if you change it, remember to change the label name in up at the top for when the text is loaded!
+
 	.include "textFiles/snp.i"
 
 ;;;;;;;;;;;;

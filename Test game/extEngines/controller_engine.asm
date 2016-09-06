@@ -1,3 +1,15 @@
+;
+; controller_engine.asm
+;
+; John Welter
+; 2016
+;
+; controller reader for NES production
+;
+; includes more options for reading input (keeps track of pressed, released, and held buttons per read)
+
+
+
 read_joypad:
     lda joypad1
     sta joypad1_old 	;save last frame's joypad button states
@@ -20,14 +32,13 @@ read_joypad:
     and joypad1 		;what is pressed this frame
     sta joypad1_pressed ;stores off-to-on transitions
 	
-	lda joypad1_old		;11001001
-	eor #$FF			;00110110
-	ora joypad1			;00101100
-	eor #$FF			;00111110
-	sta joypad1_released;11000001
+	lda joypad1_old		;what was pressed last frame.  EOR to flip all the bits to find ...
+	eor #$FF			;what was not pressed last frame
+	ora joypad1			;or with what is pressed this frame
+	eor #$FF			;then flip it
+	sta joypad1_released;to find what was released (on-to-off transitions)
 	
-	lda joypad1_old 	;11001001
-	and joypad1 		;00101100
-	sta joypad1_held	;00001000
-    
+	lda joypad1_old 	;what was pressed last frame. 
+	and joypad1 		;and with what is pressed this frame
+	sta joypad1_held	;to find what's held
     rts
