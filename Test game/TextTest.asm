@@ -260,19 +260,8 @@ nmi_start:
 ; text engine calls, once per frame
 ;
 
-  JSR TxtReset				;resets, if reset flag is on		
-  JSR TxtDefaultProcess		;parses, prints, waits
-  LDA txtPrepareUnpause		;check if A buttoin was pressed during a pause
-  CMP #$01
-  BNE UnpauseDone			;if not- or it wasn't paused to begin with- finish text calls.
+  JSR TxtProcess
   
-  JSR TxtUnpause
-  LDA #$00
-  STA txtPrepareUnpause
-  
-UnpauseDone:
-  
-
 ;
 ; text engine finished
 ;

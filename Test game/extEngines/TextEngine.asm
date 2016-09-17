@@ -10,7 +10,7 @@
 ;
 
 
-TxtDefaultProcess:
+TxtProcess:
 
 	;
 	; first checks certain flags before continuing
@@ -26,14 +26,33 @@ TxtDefaultProcess:
 	;
 	; finish
 
-	;;check if text is resetting
 	LDA txtPauseFlag
 	CMP #$00
-	BNE TxtDefaultDone
+	BEQ .notPaused
+	
+	LDA txtPrepareUnpause	
+	CMP #$01
+	BNE .unpauseDone
+  
+	JSR TxtUnpause
+	LDA #$00
+	STA txtPrepareUnpause
+
+.unpauseDone:	
+
+	JMP TxtDefaultDone
+	
+
+.notPaused:
 	
 	LDA txtResetFlag
 	CMP #$00
-	BNE TxtDefaultDone
+	BEQ .notResetting
+	
+	JSR TxtReset
+	JMP TxtDefaultDone
+	
+.notResetting:
 	
 	LDA txtDisableFlag
 	CMP #$00
@@ -527,9 +546,9 @@ PrepareReset:
 ;--------------------------------------
 TxtReset:
 
-	LDA txtPauseFlag ;if it's not paused, continue with the reset
-	CMP #$00
-	BNE ResDone
+	;LDA txtPauseFlag ;if it's not paused, continue with the reset
+	;CMP #$00
+	;BNE ResDone
 	;;resets 1 line per frame, assumes default 16char x 3line block
 	LDA txtResetInit ;make sure reset is initiated
 	CMP #$01
