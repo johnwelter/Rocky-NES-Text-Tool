@@ -57,6 +57,7 @@ txtFrmCount	  .rs 1			;frame count between parses
 txtLoc		  .rs 2			;location of printhead 
 txtResetFlag  .rs 1			;flag for text box reset- if on, the box is currently resetting (set to 3, counts down)
 txtDisableFlag .rs 1		;flag for text disable- if on, text is not printed 	
+txtDisablePrepareFlag .rs 1
 txtResetInit  .rs 1			;I don't quite remember what this was for- used to initialize text box reset 
 txtCurrentTxt .rs 2			;Holds beggining address of current text block 
 txtTemp		  .rs 1			;temp value for text engine 	
@@ -592,7 +593,7 @@ IncHundreds:
 IncDone:
 	
 	RTS 
-	
+
 DrawScore:
   LDA $2002
   LDA #$20
@@ -614,12 +615,13 @@ DrawScore:
   STA $2007
   RTS
 
-;-------------------------------------------------  
+;-- -----------------------------------------------  
 
 ;;include the two external engines
 
 	.include "extEngines/TextEngine.asm"
 	.include "extEngines/controller_engine.asm"
+	
 ;-------------------------------------------------
 
 
@@ -672,7 +674,7 @@ Sprite_Data:
 backgroundA:
   .incbin "nameTables/BackgroundBA.bin"	;background for the game
 ;;.incbin "nameTables/yomiTitle.bin"
-  palette:
+palette:
   .db $37,$30,$10,$0F,  $37,$30,$11,$0F,  $37,$30,$16,$0F,  $37,$30,$2A,$0F   ;;background palette
   .db $37,$30,$2C,$0F,  $37,$30,$26,$0F,  $37,$1C,$15,$14,  $37,$02,$38,$3C   ;;sprite palette
   

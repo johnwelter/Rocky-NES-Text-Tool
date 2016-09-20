@@ -12,57 +12,41 @@
 
 TxtProcess:
 
-	;
-	; first checks certain flags before continuing
-	; if paused, reset, or disabled, 
-	;	skip all together. 
-	; else
-	; 	decrements frame count
-	;
-	; if frame count is up, 
-	;
-	;	parse byte
-	;	reset frame count from speed
-	;
-	; finish
+	LDA txtDisableFlag	;check if disabled
+	CMP #$00			
+	BNE TxtDefaultDone	;if so, skip all of this.
 
-	LDA txtPauseFlag
+	LDA txtPauseFlag	;check if paused
 	CMP #$00
-	BEQ .notPaused
+	BEQ .notPaused		;if so, 
 	
-	LDA txtPrepareUnpause	
+	LDA txtPrepareUnpause	;check if A was pressed to prepare unpause
 	CMP #$01
-	BNE .unpauseDone
+	BNE .unpauseDone		;if so
   
-	JSR TxtUnpause
+	JSR TxtUnpause			;use this frame to unpause
 	LDA #$00
 	STA txtPrepareUnpause
 
 .unpauseDone:	
 
-	JMP TxtDefaultDone
+	JMP TxtDefaultDone		;finish this frame
 	
 
 .notPaused:
 	
-	LDA txtResetFlag
+	LDA txtResetFlag	;else if not paused, check if resetting
 	CMP #$00
-	BEQ .notResetting
+	BEQ .notResetting	;if so,
 	
-	JSR TxtReset
-	JMP TxtDefaultDone
+	JSR TxtReset		;do a frame of reset
+	JMP TxtDefaultDone	;finish this frame
 	
-.notResetting:
-	
-	LDA txtDisableFlag
-	CMP #$00
-	BNE TxtDefaultDone
+.notResetting:			
 	
 	;;check if on a print frame
 	DEC txtFrmCount
 	LDA txtFrmCount
-	;;CMP #TXTFAST
-	;;CMP #TXTSLOW
 	CMP #$00
 	BNE TxtDefaultDone
 	
@@ -78,6 +62,8 @@ ResetFrame:
 TxtDefaultDone:
 	
 	RTS
+
+
 ;--------------------------------------
 
 TxtEnable:
@@ -97,7 +83,7 @@ TxtDisable:
 	;reloads text from current text variable
 
 	LDA #$01
-	STA txtDisableFlag
+	STA txtDisablePrepareFlag
 	JSR PrepareReset
 	LDA txtCurrentTxt+1
 	LDX txtCurrentTxt
@@ -334,7 +320,6 @@ TxtParse:
 	
 	JSR TxtIncPtr
 	JSR TxtSpace
-	;INC txtChrCount
 	JSR TxtIncChrCount
 	LDA txtPauseFlag	;;check if pause flag was set during IncChrCount
 	CMP #$01			
@@ -425,7 +410,7 @@ IncChrDone:
 TxtIncLinCount:
 
 	INC txtLinCount		; increment line count
-	LDA #00				; set character count to 0
+	LDA #$00				; set character count to 0
 	STA txtChrCount
 	
 	LDA txtLinCount		
@@ -491,7 +476,6 @@ LineBreak:
 	; add offset to printhead location
 	LDA txtLoc
 	CLC
-	;ADC #$30
 	ADC txtLnBrkOff
 	STA txtLoc
 	LDA txtLoc+1
@@ -564,35 +548,44 @@ TxtReset:
 
 TxtResetLoop:
 
-	LDA #$53		;load text box background tile
-	STA $2007		;print to PPU location
+	LDA #$53			;load text box background tile
+	STA $2007			;print to PPU location
 	INX				
-	CPX txtMaxChr	;if X does not equal the max character count for the line, 
-	BNE TxtResetLoop;loop to continuously print background tiles (automatically increments PPU location)
+	CPX txtMaxChr		;if X does not equal the max character count for the line, 
+	BNE TxtResetLoop	;loop to continuously print background tiles (automatically increments PPU location)
 	
-	JSR LineBreakHead ;else move print head down 
+	JSR LineBreakHead 	;else move print head down 
 	
-	DEC txtResetFlag  ;decremnent reset flag
-	LDA txtResetFlag  ;if the flag is not 0, finish for this frame and continue the next
+	DEC txtResetFlag  	;decremnent reset flag
+	LDA txtResetFlag  	;if the flag is not 0, finish for this frame and continue the next
 	CMP #$00
 	BNE ResDone
-					  ;else
+						;else
 ResTop:					
 						
-	LDA txtStart+1	  ;set printhead back to the top
+	LDA txtStart+1	  	;set printhead back to the top
 	STA txtLoc+1
 	LDA txtStart
 	STA txtLoc
 	
-	LDA #$00		  ;disable the reset
+	LDA #$00		  	;disable the reset
 	STA txtResetInit
 	
-	LDA #00			  ;reset character count
+	LDA #$00		  	;reset character count
 	STA txtChrCount
-	LDA #$00		  ;reset line count
+	LDA #$00		  	;reset line count
 	STA txtLinCount
+	
+	LDA txtDisablePrepareFlag ;if if prepared for disable
+	CMP #$00
+	BEQ ResDone
+	
+	STA txtDisableFlag		;disable the text engine
+	LDA #$00				
+	STA txtDisablePrepareFlag ;reset the preparation flag
 
 	
 ResDone:
 
 	RTS
+	
