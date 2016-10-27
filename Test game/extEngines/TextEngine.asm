@@ -42,7 +42,17 @@ TxtProcess:
 	JSR TxtReset		;do a frame of reset
 	JMP TxtDefaultDone	;finish this frame
 	
-.notResetting:			
+.notResetting:		
+
+	LDA txtBoxDrawFlag
+	CMP #$00
+	BEQ .notBoxDraw
+	
+	JSR TxtBoxDraw
+	JMP TxtDefaultDone
+
+.notBoxDraw:
+	
 	
 	;;check if on a print frame
 	DEC txtFrmCount
@@ -72,6 +82,7 @@ TxtEnable:
 
 	LDA #$00
 	STA txtDisableFlag
+	JSR TxtPrepareBoxDraw
 	RTS
 	
 ;--------------------------------------
@@ -106,11 +117,9 @@ TxtPause:
 
 	TAY
 	
-	LDA $2002
-	LDA txtInputTileLoc+1
-	STA $2006
-	LDA txtInputTileLoc
-	STA $2006
+	LDA txtInputTileLoc+1	;set PPU input location to printhead
+	LDX txtInputTileLoc
+	JSR SetPPU
 	
 	TYA
 	STA $2007
@@ -129,11 +138,10 @@ TxtUnpause:
 	;
 	; resets pause flag
 
-	LDA $2002
-	LDA txtInputTileLoc+1
-	STA $2006
-	LDA txtInputTileLoc
-	STA $2006
+	
+	LDA txtInputTileLoc+1	;set PPU input location to printhead
+	LDX txtInputTileLoc
+	JSR SetPPU
 	
 	LDA #TXTNORMALTILE
 	STA $2007
@@ -166,68 +174,43 @@ TxtLoad:
 	
 	
 ;--------------------------------------
-TxtSetStart:
-
-	; input- A = high byte of location, X = low byte of location
-	;
-	; sets start of text box to passed in values	
+TxtSetStart:	;sets start of text box to passed in values	
 	
-	STA txtStart+1
-	STX txtStart
+	STA txtStart+1	;input A = high byte of location
+	STX txtStart	;input X = low byte of location
 	RTS
 
-TxtSetMaxLin:
+TxtSetMaxLin:	; sets max line count
 
-	; input- A = max line count
-	; sets max line count
-	
-	STA txtMaxLin
+	STA txtMaxLin 	; input A = max line count
 	RTS
 
-TxtSetMaxChr:
+TxtSetMaxChr:	; sets max character count
 
-	; input- A = max character count
-	; sets max character count
-
-	STA txtMaxChr
+	STA txtMaxChr	; input A = max character count
 	RTS
 	
-TxtSetLoc:
+TxtSetLoc:		; sets printhead location
 
-	; input - A = high byte of printhead location, X = low byte of printhead location
-	;
-	; sets printhead location
-
-	STA txtLoc+1
-	STX txtLoc
+	STA txtLoc+1	; input A = high byte of printhead location
+	STX txtLoc		; input X = low byte of printhead location
 	RTS
 	
-TxtSetSpeed:
+TxtSetSpeed:	;sets speed of text
 
-	; input A = speed to change to
-	;
-	; if the input is 0
-	;	reset speed to default
-	; else
-	;	set speed
+	CMP #$00			; if the input is 0
+	BNE .nonDefault		
+	LDA txtDefaultSpeed	;	reset speed to default
 
-	CMP #$00
-	BNE .nonDefault
-	LDA txtDefaultSpeed
+.nonDefault:	;else set the speed
 
-.nonDefault:
-
-	STA txtSpeed
+	STA txtSpeed	; input A = speed to change to
 	RTS
 	
-TxtSetInputTileLoc:
+TxtSetInputTileLoc:	; sets input tile location
 
-	; input- A = high byte of input tile location, X = low byte of input tile location
-	;
-	; sets input tile location
-
-	STA txtInputTileLoc+1
-	STX txtInputTileLoc
+	STA txtInputTileLoc+1	; input A = high byte of input tile location
+	STX txtInputTileLoc		; input X = low byte of input tile location
 	RTS
 	
 ;--------------------------------------	
@@ -335,7 +318,12 @@ TxtParse:
 
 	JSR TxtIncPtr
 	JSR LineBreak
+	
+	LDA txtResetFlag
+	BNE .lnBreakDone	;skip the parse if the line break causes a reset
 	JSR TxtParse
+	
+.lnBreakDone:
 	JMP .end
 	
 .reset:
@@ -432,11 +420,9 @@ TxtPrint:
 	
 	TAY
 	
-	LDA $2002		; set PPU input location to print head
-	LDA txtLoc+1
-	STA $2006
-	LDA txtLoc
-	STA $2006
+	LDA txtLoc+1	;set PPU input location to printhead
+	LDX txtLoc
+	JSR SetPPU
 	
 	TYA				; print tile at the location
 	STA $2007
@@ -490,7 +476,7 @@ LineBreakHead:
 
 	;; used in reset- reset blacks out a line starting from the printhead without 
 	;; changing the printhead, so a different line break is necessary to get it to the next line.
-	;;[CURRENT]: double spaced, same X offset as head of last line, assuming 16 char lines, from head of last line
+	;;[CURRENT]: double spaced, same X offset as head of last line
 	LDA txtLoc
 	CLC
 	ADC #$40
@@ -500,6 +486,19 @@ LineBreakHead:
 	STA txtLoc+1
 	
 	RTS
+BoxLnBrkHd:
+
+	LDA txtLoc
+	CLC
+	ADC #$20
+	STA txtLoc
+	LDA txtLoc+1
+	ADC #$00
+	STA txtLoc+1
+	
+	RTS
+
+
 ;-------------------------------------
 
 TxtIncPtr:
@@ -514,41 +513,29 @@ TxtIncPtr:
 	
 ;--------------------------------------
 PrepareReset:
-
-	;;prepare text box for reset, assumes default 16char x 3line block
+	
 	LDA txtStart+1		;sets printhead to beggining of text box
 	STA txtLoc+1
 	LDA txtStart
 	STA txtLoc
 	
-	LDA #$03			;sets reset flag (to three, since it's decremented)
+	;;LDA #$03			;sets reset flag to max line amount to be decremented
+	LDA txtMaxLin
 	STA txtResetFlag
-	LDA #$01			;not to sure what this is for anymore- appears to be an initializer for reset (original flag?)
-	StA txtResetInit
 	RTS
 
 ;--------------------------------------
 TxtReset:
-
-	;LDA txtPauseFlag ;if it's not paused, continue with the reset
-	;CMP #$00
-	;BNE ResDone
-	;;resets 1 line per frame, assumes default 16char x 3line block
-	LDA txtResetInit ;make sure reset is initiated
-	CMP #$01
-	BNE ResDone
 	
-	LDA $2002		;set PPU input location to printhead
-	LDA txtLoc+1
-	STA $2006
-	LDA txtLoc
-	STA $2006
+	LDA txtLoc+1	;set PPU input location to printhead
+	LDX txtLoc
+	JSR SetPPU
 	
 	LDX #$00		
 
 TxtResetLoop:
 
-	LDA #$53			;load text box background tile
+	LDA #$53			;load text box background tile, TXTBOXC
 	STA $2007			;print to PPU location
 	INX				
 	CPX txtMaxChr		;if X does not equal the max character count for the line, 
@@ -561,31 +548,217 @@ TxtResetLoop:
 	CMP #$00
 	BNE ResDone
 						;else
-ResTop:					
+ResTop:	
+
+	LDA txtDisablePrepareFlag ;if if prepared for disable
+	BEQ .notDisabling
+	
+	JSR TxtPrepareBoxDraw
+	JMP ResDone
+
+.notDisabling:	
 						
 	LDA txtStart+1	  	;set printhead back to the top
 	STA txtLoc+1
 	LDA txtStart
 	STA txtLoc
 	
-	LDA #$00		  	;disable the reset
-	STA txtResetInit
-	
 	LDA #$00		  	;reset character count
 	STA txtChrCount
 	LDA #$00		  	;reset line count
 	STA txtLinCount
 	
-	LDA txtDisablePrepareFlag ;if if prepared for disable
-	CMP #$00
-	BEQ ResDone
 	
-	STA txtDisableFlag		;disable the text engine
-	LDA #$00				
-	STA txtDisablePrepareFlag ;reset the preparation flag
-
 	
 ResDone:
 
 	RTS
+	
+;--------------------------------------------
+
+
+
+;;BOX DRAW FUNCTIONS
+
+;;start with corner tile
+;;
+
+;;WARNING- if opening erasable boxes, be sure to delete them in the order they are opened
+
+TxtSetBoxDimensions:
+
+	;;A = Width 
+	;;X = Height
+	
+	STA txtBoxWidth
+	STX txtBoxHeight
+
+	;;set new text to box as separate function...? yes, for space sake. but call it here for sure
+	;;JSR TxtSetTextToBox
+	
+	RTS
+
+TxtSetBoxLocation: 
+
+	;;A = loc+1
+	;;X = loc
+	
+	STA txtBoxLoc+1
+	STX txtBoxLoc
+	
+	RTS
+	
+TxtSetTextToBox: ;; only call if text is currently disabled
+
+	;;set txt loc
+	;;set pause tile loc
+	;;set max char
+	;;set max lin
+
+	RTS
+	
+TxtPrepareBoxDraw:
+
+	LDA txtBoxLoc+1		;sets printhead to top corner of text box
+	STA txtLoc+1
+	LDA txtBoxLoc
+	STA txtLoc
+
+	LDA txtBoxHeight		;set boxHeightFlag to height of box
+	STA txtBoxDrawFlag	
+	
+	RTS
+	
+TxtBoxDraw:
+
+	LDA txtLoc+1	;set PPU input location to printhead
+	LDX txtLoc
+	JSR SetPPU
+	
+	LDY #$00
+
+	LDA #HIGH(TxtBoxTiles)
+	STA txtBoxTilePtr+1
+	LDA #LOW(TxtBoxTiles)
+	STA txtBoxTilePtr
+
+	LDA txtDisablePrepareFlag
+	BEQ .notErasing
+	
+	LDA txtBoxTilePtr
+	CLC
+	ADC #$09
+	STA txtBoxTilePtr
+	LDA txtBoxTilePtr+1
+	ADC #$00
+	STA txtBoxTilePtr+1
+	JMP .initDraw
+	
+.notErasing
+	
+	LDA txtBoxDrawFlag
+	CMP txtBoxHeight
+	BNE .notTop
+	
+	LDA txtBoxTilePtr
+	CLC
+	ADC #$03
+	STA txtBoxTilePtr
+	LDA txtBoxTilePtr+1
+	ADC #$00
+	STA txtBoxTilePtr+1
+
+	JMP .initDraw
+	
+.notTop:
+
+	CMP #$01
+	BNE .initDraw
+	
+	LDA txtBoxTilePtr
+	CLC
+	ADC #$06
+	STA txtBoxTilePtr
+	LDA txtBoxTilePtr+1
+	ADC #$00
+	STA txtBoxTilePtr+1
+
+.initDraw:
+	
+	LDA [txtBoxTilePtr], y
+	STA $2007 
+	LDX #$02
+	INY
+	LDA [txtBoxTilePtr], y
+
+.loop:
+
+	STA $2007			;print to PPU location
+	INX				
+	CPX txtBoxWidth
+	BNE .loop			;loop to continuously print background tiles (automatically increments PPU location)
+	
+	
+	INY
+	LDA [txtBoxTilePtr], y
+	STA $2007
+	
+	JSR BoxLnBrkHd	;else move print head down 
+	DEC txtBoxDrawFlag	 	;decremnent reset flag
+	LDA txtBoxDrawFlag 		;if the flag is not 0, finish for this frame and continue the next
+	BNE .boxDone
+	
+.resetTop:
+
+	
+	LDA txtStart+1	  	;set printhead back to the top
+	STA txtLoc+1
+	LDA txtStart
+	STA txtLoc
+	
+	LDA txtDisablePrepareFlag ;if if prepared for disable
+	CMP #$00
+	BEQ .boxDone
+	
+	STA txtDisableFlag		;disable the text engine
+	LDA #$00				
+	STA txtDisablePrepareFlag ;reset the preparation flag
+	
+	LDA #$00		  	;reset character count
+	STA txtChrCount
+	LDA #$00		  	;reset line count
+	STA txtLinCount
+
+.boxDone:
+	RTS
+	
+	
+
+	
+TxtBoxTiles:
+
+	.db $33, TXTNORMALTILE,   $34
+	.db $30, $31, $32
+	.db $35, $36, $37
+	.db TXTNORMALTILE, TXTNORMALTILE, TXTNORMALTILE ;; only for easy use version of erasing box
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+
 	

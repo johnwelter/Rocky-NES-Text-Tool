@@ -70,6 +70,12 @@ txtInputTileLoc	.rs 2		;tile location for input wait tile
 txtPauseFlag	.rs 1		;flag for pause- if on, text box is waiting for input 
 txtPrepareUnpause .rs 1		;prepares to reset pause flag once input is given 
 
+txtBoxWidth		.rs 1		;width of text box to be printed
+txtBoxHeight	.rs 1		;height of text box to be printed
+txtBoxLoc		.rs 2		;location of text box to be printed (top left corner)
+txtBoxTilePtr	.rs 2		;location to use in the box tiles
+txtBoxDrawFlag	.rs 1
+
 pointer	      .rs 2
 
 ;TXTSTARTHI	   = $22
@@ -158,7 +164,13 @@ LoadPalettesLoop:
   
   ;initializes text engine and variables
   
-  JSR TxtDisable	;disable the text 
+  LDA #$16
+  LDX #$09
+  JSR TxtSetBoxDimensions
+  
+  LDA #$22
+  LDX #$65
+  JSR TxtSetBoxLocation
   
   LDA #$22			
   LDX #$A8
@@ -184,8 +196,13 @@ LoadPalettesLoop:
   STA txtDefaultSpeed		;sets default speed to fast (3 frames between parses)
   JSR TxtSetSpeed			;sets current speed to same speed
   
-  LDA #HIGH(SpeedAndPause)	
-  LDX #LOW(SpeedAndPause)	
+  LDA #$01
+  STA txtDisableFlag
+  
+  ;;JSR TxtDisable	;disable the text 
+  
+  LDA #HIGH(NumbText)	
+  LDX #LOW(NumbText)	
   
   JSR TxtLoad				;loads test text (located under label SpeedAndPause in the included 
 							;.i or .asm file created in the text creator, in this case textFiles/snp.i )
@@ -304,6 +321,9 @@ ReadUp:
   LDA joypad1_pressed	;Up
   AND #CONTROLLER_UP
   BEQ ReadUpDone
+  
+  LDA txtDisableFlag
+  BEQ ReadUpDone
   JSR TxtEnable
   
   RTS
@@ -323,6 +343,9 @@ ReadDown:
   
   LDA txtPauseFlag
   CMP #$00
+  BNE ReadDownDone
+  
+  LDA txtDisableFlag
   BNE ReadDownDone
   JSR TxtDisable
   RTS
@@ -427,14 +450,18 @@ LoadBackground:
 	;LDA #LOW(backgroundA)
 	;STA pointer1
 	
-	LDA $2002             ; read PPU status to reset the high/low latch
 	LDA #$20
-	STA $2006             ; write the high byte of $2000 address
-	LDA #$00
-	STA $2006             ; write the low byte of $2000 address
+	LDX #$00
+	JSR SetPPU
+	
+	;LDA $2002             ; read PPU status to reset the high/low latch
+	;LDA #$20
+	;STA $2006             ; write the high byte of $2000 address
+	;LDA #$00
+	;STA $2006             ; write the low byte of $2000 address
 	
 	;;set pointer
-	;; set counters
+	;;set counters
 	LDY #$00
 	LDX #$00
 	
@@ -621,6 +648,7 @@ DrawScore:
 
 	.include "extEngines/TextEngine.asm"
 	.include "extEngines/controller_engine.asm"
+	.include "extEngines/UtilEngine.asm"
 	
 ;-------------------------------------------------
 
@@ -672,7 +700,8 @@ Sprite_Data:
   .org $E000
   
 backgroundA:
-  .incbin "nameTables/BackgroundBA.bin"	;background for the game
+  .incbin "nameTables/BackgroundBB.bin"	;background for the game
+;;.incbin "nameTables/BackgroundBA.bin"	;background for the game
 ;;.incbin "nameTables/yomiTitle.bin"
 palette:
   .db $37,$30,$10,$0F,  $37,$30,$11,$0F,  $37,$30,$16,$0F,  $37,$30,$2A,$0F   ;;background palette
@@ -696,7 +725,7 @@ GraphicsPointers:
 
 	;;text file for this example. if you change it, remember to change the label name in up at the top for when the text is loaded!
 
-	.include "textFiles/snp.i"
+	.include "textFiles/NumbText.i"
 
 ;;;;;;;;;;;;
 ;;;;;;;;;;;;
