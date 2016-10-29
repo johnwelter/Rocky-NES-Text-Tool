@@ -78,9 +78,6 @@ txtBoxDrawFlag	.rs 1
 
 pointer	      .rs 2
 
-;TXTSTARTHI	   = $22
-;TXTSTARTLO	   = $A8
-;TXTMAXLIN	   = $10
 TXTFAST	   = $03		;;fast text speed
 TXTMED	   = $06		;;medium text speed
 TXTSLOW	   = $09		;;slow text speed
@@ -164,12 +161,12 @@ LoadPalettesLoop:
   
   ;initializes text engine and variables
   
-  LDA #$16
-  LDX #$09
+  LDA #$20
+  LDX #$1C
   JSR TxtSetBoxDimensions
   
-  LDA #$22
-  LDX #$65
+  LDA #$20
+  LDX #$20
   JSR TxtSetBoxLocation
   
   LDA #$22			
@@ -444,23 +441,11 @@ SetBackground:
 	RTS
 
 LoadBackground:
-
-	;LDA #HIGH(backgroundA)
-	;STA pointer1+1
-	;LDA #LOW(backgroundA)
-	;STA pointer1
 	
 	LDA #$20
 	LDX #$00
 	JSR SetPPU
 	
-	;LDA $2002             ; read PPU status to reset the high/low latch
-	;LDA #$20
-	;STA $2006             ; write the high byte of $2000 address
-	;LDA #$00
-	;STA $2006             ; write the low byte of $2000 address
-	
-	;;set pointer
 	;;set counters
 	LDY #$00
 	LDX #$00
@@ -701,8 +686,6 @@ Sprite_Data:
   
 backgroundA:
   .incbin "nameTables/BackgroundBB.bin"	;background for the game
-;;.incbin "nameTables/BackgroundBA.bin"	;background for the game
-;;.incbin "nameTables/yomiTitle.bin"
 palette:
   .db $37,$30,$10,$0F,  $37,$30,$11,$0F,  $37,$30,$16,$0F,  $37,$30,$2A,$0F   ;;background palette
   .db $37,$30,$2C,$0F,  $37,$30,$26,$0F,  $37,$1C,$15,$14,  $37,$02,$38,$3C   ;;sprite palette

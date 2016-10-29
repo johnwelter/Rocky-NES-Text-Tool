@@ -120,24 +120,57 @@ INITIAL TEST:
 	...which of cousre can be any value you would like! but these are the defaults for the test project.
 
 
-	For version 1.0, all txt code is called in the NMI, like so:
+before the game starts, it would be wise to fill in some default values to start with, at least under the current version. here is what the test game uses, as a guide:
+
+	;initializes text engine and variables
+  
+  	LDA #$16
+  	LDX #$09
+  	JSR TxtSetBoxDimensions
+  
+  	LDA #$22
+  	LDX #$65
+  	JSR TxtSetBoxLocation
+  
+  	LDA #$22			
+  	LDX #$A8
+  	
+  	JSR TxtSetStart			;sets the text box to start at loaction 22A8 on the screen
+  	JSR TxtSetLoc			;sets print head to the same location
+  
+  	LDA #$23	
+  	LDX #$59
+  
+  	JSR TxtSetInputTileLoc		;sets input tile loaction to 2359 on the screen
+  
+  	LDA #$03
+  
+  	JSR TxtSetMaxLin		;sets max line count to 3
+ 
+  	LDA #$10					
+  
+  	JSR TxtSetMaxChr		;sets max charatcer count per line to 16
+  
+  	LDA #TXTFAST
+  
+  	STA txtDefaultSpeed		;sets default speed to fast (3 frames between parses)
+  	JSR TxtSetSpeed			;sets current speed to same speed
+  
+  	LDA #$01
+ 	STA txtDisableFlag		;;needs to be able to just call the disable function- fixing in
+					;;future updates.
+  	LDA #HIGH(NumbText)	
+  	LDX #LOW(NumbText)	
+  
+  	JSR TxtLoad
+
 	
-		  JSR TxtReset
-  		  JSR TxtDefaultProcess
-  		  LDA txtPrepareUnpause
-  		  CMP #$01
-  		  BNE UnpauseDone
-  
-  		  JSR TxtUnpause
-  		  LDA #$00
-  		  STA txtPrepareUnpause
-  
-	UnpauseDone:
 
-		  ;; and so on
+	You can easily call the text engine process in the NMI with this call:
 
-	if the text box is resetting, the first code follows through. if not, it goes ahead to the next
-	process. I'm aware this isn't the best way to do this, but it works for now. 
+	JSR TxtProcess
+	
+
 
 
 ---------------------------------------------------------------------------------------------
@@ -145,7 +178,7 @@ INITIAL TEST:
 ;ENGINE FUNCTIONS;
 ;;;;;;;;;;;;;;;;;;
 	
-	TxtDefaultProcess : basic frame based print out
+	TxtProcess 	  : basic frame based print out
 	TxtEnable	  : enables text engine to start printing
 	TxtDisable	  : disables text, resets box, re-loads current text
 	TxtPause	  : writes the tile passed in A to the input tile location, sets the pause flag
@@ -155,21 +188,23 @@ INITIAL TEST:
 	TxtSetMaxLin	  : sets the max line count before a default box reset (from A)
 	TxtSetMaxChr	  : sets the max character count before a default line break (from A)
 	TxtSetLoc	  : sets location of printhead (from A and X)
-	TxtSetSpeed	  : sets speed of text (passed in from A). if the passed in speed is Zero, resets to default speed
+	TxtSetSpeed	  : sets speed of text (passed in from A). if the passed in speed is Zero, resets 
+			    to default speed
 	TxtSetInputTileLoc: sets screen location for the input tile
 	TxtParse	  : parses current byte of data block
 	TxtPrint	  : prints current byte of data block from background table
 	TxtNext		  : goes to next consecutive space on screen to print to
 	TxtSpace	  : adds a space (a call to TxtNext)
 	LineBreak	  : break line (currentnly double spaced)
-	LineBreakHead     : used in reset, since the txtLoc used in reset never leaves the start of the line.
+	LineBreakHead     : used in reset, since the txtLoc used in reset never leaves the start of the
+			    line.
 	BoxLnBrkHd: 	  : same as the line break head, but single spaced. Currently a placeholder
 	TxtIncPtr	  : increments pointer in data block to the next byte
 	PrepareReset	  : prepares to reset the text block
 	TxtReset	  : resets text block based on MaxChr and MaxLin
 	TxtSetBoxDimensions: sets box width and height (A - W, X - H)
 	TxtSetBoxLocation : sets location of box by top left corner(A - HI, X - LO)
-	TxtSetTextToBox	  : NOT YET IMPLEMENTED- sets text location, pause tile location, max chr and max lin based on the current box
+	TxtSetTextToBox	  : NOT YET IMPLEMENTED- sets text location, pause tile location, max chr and max 			    lin based on the current box
 	TxtPrepareBoxDraw : prepares to draw text box
 	TxtBoxDraw	  : draws text box from width and height
 	 

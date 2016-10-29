@@ -708,13 +708,7 @@ TxtBoxDraw:
 	LDA txtBoxDrawFlag 		;if the flag is not 0, finish for this frame and continue the next
 	BNE .boxDone
 	
-.resetTop:
-
-	
-	LDA txtStart+1	  	;set printhead back to the top
-	STA txtLoc+1
-	LDA txtStart
-	STA txtLoc
+.finish:
 	
 	LDA txtDisablePrepareFlag ;if if prepared for disable
 	CMP #$00
@@ -723,16 +717,24 @@ TxtBoxDraw:
 	STA txtDisableFlag		;disable the text engine
 	LDA #$00				
 	STA txtDisablePrepareFlag ;reset the preparation flag
+
+.boxDone:
+	RTS
+	
+TxtResetText:
+
+	LDA txtStart+1	  	;set printhead back to the top
+	STA txtLoc+1
+	LDA txtStart
+	STA txtLoc
 	
 	LDA #$00		  	;reset character count
 	STA txtChrCount
 	LDA #$00		  	;reset line count
 	STA txtLinCount
-
-.boxDone:
 	RTS
-	
-	
+
+
 
 	
 TxtBoxTiles:
