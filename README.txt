@@ -204,7 +204,8 @@ before the game starts, it would be wise to fill in some default values to start
 	TxtReset	  : resets text block based on MaxChr and MaxLin
 	TxtSetBoxDimensions: sets box width and height (A - W, X - H)
 	TxtSetBoxLocation : sets location of box by top left corner(A - HI, X - LO)
-	TxtSetTextToBox	  : NOT YET IMPLEMENTED- sets text location, pause tile location, max chr and max 			    lin based on the current box
+	TxtSetTextToBox	  : NOT YET IMPLEMENTED- sets text location, pause tile location, max chr and max
+			    lin based on the current box
 	TxtPrepareBoxDraw : prepares to draw text box
 	TxtBoxDraw	  : draws text box from width and height
 	 
