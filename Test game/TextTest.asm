@@ -107,125 +107,124 @@ STATEGAMEOVER  = $02  ; displaying game over screen
 ;;;;;;;;;;;;;;
 
 RESET:
-  SEI          ; disable IRQs
-  CLD          ; disable decimal mode
-  LDX #$40
-  STX $4017    ; disable APU frame IRQ
-  LDX #$FF
-  TXS          ; Set up stack
-  INX          ; now X = 0
-  STX $2000    ; disable NMI
-  STX $2001    ; disable rendering
-  STX $4010    ; disable DMC IRQs
+	SEI          ; disable IRQs
+	CLD          ; disable decimal mode
+	LDX #$40
+	STX $4017    ; disable APU frame IRQ
+	LDX #$FF
+	TXS          ; Set up stack
+	INX          ; now X = 0
+	STX $2000    ; disable NMI
+	STX $2001    ; disable rendering
+	STX $4010    ; disable DMC IRQs
 
 vblankwait1:       ; First wait for vblank to make sure PPU is ready
-  BIT $2002
-  BPL vblankwait1
+	BIT $2002
+	BPL vblankwait1
 
 clrmem:
-  LDA #$00
-  STA $0000, x
-  STA $0100, x
-  STA $0300, x
-  STA $0400, x
-  STA $0500, x
-  STA $0600, x
-  STA $0700, x
-  LDA #$FE
-  STA $0200, x
-  INX
-  BNE clrmem
-   
+	LDA #$00
+	STA $0000, x
+	STA $0100, x
+	STA $0300, x
+	STA $0400, x
+	STA $0500, x
+	STA $0600, x
+	STA $0700, x
+	LDA #$FE
+	STA $0200, x
+	INX
+	BNE clrmem
+	
 vblankwait2:      ; Second wait for vblank, PPU is ready after this
-  BIT $2002
-  BPL vblankwait2
+	BIT $2002
+	BPL vblankwait2
 
 LoadPalettes:
-  LDA $2002             ; read PPU status to reset the high/low latch
-  LDA #$3F
-  STA $2006             ; write the high byte of $3F00 address
-  LDA #$00
-  STA $2006             ; write the low byte of $3F00 address
-  LDX #$00              ; start out at 0
+	LDA $2002             ; read PPU status to reset the high/low latch
+	LDA #$3F
+	STA $2006             ; write the high byte of $3F00 address
+	LDA #$00
+	STA $2006             ; write the low byte of $3F00 address
+	LDX #$00              ; start out at 0
 LoadPalettesLoop:
-  LDA palette, x        
-  STA $2007             ; write to PPU
-  INX                   ; X = X + 1
-  CPX #$20              ; Compare X to hex $10, decimal 16 - copying 16 bytes = 4 sprites
-  BNE LoadPalettesLoop  ; Branch to LoadPalettesLoop if compare was Not Equal to zero
+	LDA palette, x        
+	STA $2007             ; write to PPU
+	INX                   ; X = X + 1
+	CPX #$20              ; Compare X to hex $10, decimal 16 - copying 16 bytes = 4 sprites
+	BNE LoadPalettesLoop  ; Branch to LoadPalettesLoop if compare was Not Equal to zero
                         ; if compare was equal to 32, keep going down
-  LDA #HIGH(backgroundA)
-  LDX #LOW(backgroundA)
-  JSR SetBackground
-  JSR LoadBackground
+	LDA #HIGH(backgroundA)
+	LDX #LOW(backgroundA)
+	JSR SetBackground
+	JSR LoadBackground
   
   ;initializes text engine and variables
   
-  LDA #$20
-  LDX #$1C
-  JSR TxtSetBoxDimensions
+	LDA #$20
+	LDX #$1C
+	JSR TxtSetBoxDimensions
   
-  LDA #$20
-  LDX #$20
-  JSR TxtSetBoxLocation
+	LDA #$20
+	LDX #$20
+	JSR TxtSetBoxLocation
   
-  LDA #$22			
-  LDX #$A8
+	LDA #$20			
+	LDX #$A8
   
-  JSR TxtSetStart	;sets the text box to start at loaction 22A8 on the screen
-  JSR TxtSetLoc		;sets print head to the same location
+	JSR TxtSetStart	;sets the text box to start at loaction 22A8 on the screen
+	JSR TxtSetLoc		;sets print head to the same location
   
-  LDA #$23	
-  LDX #$59
+	LDA #$23	
+	LDX #$59
   
-  JSR TxtSetInputTileLoc	;sets input tile loaction to 2359 on the screen
+	JSR TxtSetInputTileLoc	;sets input tile loaction to 2359 on the screen
   
-  LDA #$03
+	LDA #$03
   
-  JSR TxtSetMaxLin			;sets max line count to 3
+	JSR TxtSetMaxLin			;sets max line count to 3
  
-  LDA #$10					
+	LDA #$10					
   
-  JSR TxtSetMaxChr			;sets max charatcer count per line to 16
+	JSR TxtSetMaxChr			;sets max charatcer count per line to 16
   
-  LDA #TXTFAST
+	LDA #TXTMED
   
-  STA txtDefaultSpeed		;sets default speed to fast (3 frames between parses)
-  JSR TxtSetSpeed			;sets current speed to same speed
+	STA txtDefaultSpeed		;sets default speed to fast (3 frames between parses)
+	JSR TxtSetSpeed			;sets current speed to same speed
   
-  LDA #$01
-  STA txtDisableFlag
+	JSR TxtDisable
   
-  ;;JSR TxtDisable	;disable the text 
+	;;JSR TxtDisable	;disable the text 
   
-  LDA #HIGH(NumbText)	
-  LDX #LOW(NumbText)	
+	LDA #HIGH(NumbText)	
+	LDX #LOW(NumbText)	
   
-  JSR TxtLoad				;loads test text (located under label SpeedAndPause in the included 
+	JSR TxtLoad				;loads test text (located under label SpeedAndPause in the included 
 							;.i or .asm file created in the text creator, in this case textFiles/snp.i )
   
-  ;LDA #TXTSTARTHI
-  ;STA txtLoc+1
-  ;LDA #TXTSTARTLO
-  ;STA txtLoc
+	;LDA #TXTSTARTHI
+	;STA txtLoc+1
+	;LDA #TXTSTARTLO
+	;STA txtLoc
   
   
-  LDA #$00
-  STA $2003              ; set the low byte (00) of the RAM address  
+	LDA #$00
+	STA $2003              ; set the low byte (00) of the RAM address  
 
-  LDX #$00
-  JSR LoadCompleteBank   ;load the graphics into this "CHR-RAM" program 
+	LDX #$00
+	JSR LoadCompleteBank   ;load the graphics into this "CHR-RAM" program 
   
-  LDX #$02
-  JSR LoadCompleteBank
+	LDX #$02
+	JSR LoadCompleteBank
   
-  ;JSR PartialBankSetUp
+	;JSR PartialBankSetUp
               
-  LDA #%10010000         ; disable NMI, sprites from Pattern Table 0, background from Pattern Table 1
-  STA $2000
+	LDA #%10010000         ; disable NMI, sprites from Pattern Table 0, background from Pattern Table 1
+	STA $2000
 
-  LDA #%00011110         ; disable sprites, enable background, no clipping on left side
-  STA $2001
+	LDA #%00011110         ; disable sprites, enable background, no clipping on left side
+	STA $2001
 
 ;----------------------------------------------------------------------
 ;-----------------------START MAIN PROGRAM-----------------------------
@@ -233,19 +232,19 @@ LoadPalettesLoop:
 
 Forever:
   
-  INC sleeping
+	INC sleeping
 
 .loop
-  LDA sleeping
-  BNE .loop
+	LDA sleeping
+	BNE .loop
 
-  JSR read_joypad
-  JSR handle_input
+	JSR read_joypad
+	JSR handle_input
   
   
-  ;;JSR PartialBankSetUp
+	;;JSR PartialBankSetUp
 
-  JMP Forever     ;jump back to Forever, infinite loop
+	JMP Forever     ;jump back to Forever, infinite loop
   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
@@ -254,57 +253,57 @@ Forever:
 
 NMI:
 
-  PHA                              ;protect the registers
-  TXA
-  PHA
-  TYA
-  PHA
+	PHA                              ;protect the registers
+	TXA
+	PHA
+	TYA
+	PHA
 
 nmi_start:
 
-  LDA #$00
-  STA $2003  ; set the low byte (00) of the RAM address
-  LDA #$02
-  STA $4014  ; set the high byte (02) of the RAM address, start the transfer
-
-  LDA updating_background
-  BNE skip_graphics_updates
+	LDA #$00
+	STA $2003  ; set the low byte (00) of the RAM address
+	LDA #$02
+	STA $4014  ; set the high byte (02) of the RAM address, start the transfer
+	
+	LDA updating_background
+	BNE skip_graphics_updates
   
   
 ;
 ; text engine calls, once per frame
 ;
 
-  JSR TxtProcess
+	JSR TxtProcess
   
 ;
 ; text engine finished
 ;
-  ;;JSR LoadPartialBank
-  ;;JSR DrawScore
+	;;JSR LoadPartialBank
+	;;JSR DrawScore
    
-  LDA #$00        ;no scrolling
-  STA $2005
-  STA $2005
-  STA $2006
-  STA $2006
+	LDA #$00        ;no scrolling
+	STA $2005
+	STA $2005
+	STA $2006
+	STA $2006
 
-  LDA #%00011110  ;disable sprites,enable background,no clipping
-  STA $2001
+	LDA #%00011110  ;disable sprites,enable background,no clipping
+	STA $2001
 
 WakeUp:
-  LDA #$00
-  STA sleeping
+	LDA #$00
+	STA sleeping
 
 skip_graphics_updates:
 
-  PLA                              ;restore the registers
-  TAY 
-  PLA
-  TAX
-  PLA
+	PLA                              ;restore the registers
+	TAY 
+	PLA
+	TAX
+	PLA
 
-  RTI             ; return from interrupt
+	RTI             ; return from interrupt
 
 ;;;;;;;;;;;;;; 
 ;this section handles the input from the controllers and runs stuff
@@ -315,15 +314,15 @@ ReadUp:
   ;;if UP is pressed
   ;;enables text to print if currently disabled
 
-  LDA joypad1_pressed	;Up
-  AND #CONTROLLER_UP
-  BEQ ReadUpDone
+	LDA joypad1_pressed	;Up
+	AND #CONTROLLER_UP
+	BEQ ReadUpDone
   
-  LDA txtDisableFlag
-  BEQ ReadUpDone
-  JSR TxtEnable
+	LDA txtDisableFlag
+	BEQ ReadUpDone
+	JSR TxtFullEnable
   
-  RTS
+	RTS
 
 ReadUpDone:
 
@@ -331,21 +330,21 @@ ReadUpDone:
 
 ReadDown:
 
-  ;;if DOWN is pressed
-  ;;disables text if currently enabled, and not waiting for input
+	;;if DOWN is pressed
+	;;disables text if currently enabled, and not waiting for input
 
-  LDA joypad1_pressed	;Down
-  AND #CONTROLLER_DOWN
-  BEQ ReadDownDone
+	LDA joypad1_pressed	;Down
+	AND #CONTROLLER_DOWN
+	BEQ ReadDownDone
   
-  LDA txtPauseFlag
-  CMP #$00
-  BNE ReadDownDone
+	LDA txtPauseFlag
+	CMP #$00
+	BNE ReadDownDone
   
-  LDA txtDisableFlag
-  BNE ReadDownDone
-  JSR TxtDisable
-  RTS
+	LDA txtDisableFlag
+	BNE ReadDownDone
+	JSR TxtFullDisable
+	RTS
 
 ReadDownDone:
 
@@ -353,13 +352,13 @@ ReadDownDone:
 
 ReadRight:
 
-  ;;if RIGHT is pressed
-  ;;do nothing
+	;;if RIGHT is pressed
+	;;do nothing
 	
-  LDA joypad1_pressed	;Right
-  AND #CONTROLLER_RIGHT
-  BEQ ReadRightDone
-  RTS
+	LDA joypad1_pressed	;Right
+	AND #CONTROLLER_RIGHT
+	BEQ ReadRightDone
+	RTS
 
 ReadRightDone:
 
@@ -367,13 +366,13 @@ ReadRightDone:
 
 ReadLeft:
   
-  ;;if LEFT is pressed
-  ;;do nothing
+	;;if LEFT is pressed
+	;;do nothing
    
-  LDA joypad1_pressed	;Left
-  AND #CONTROLLER_LEFT
-  BEQ ReadLeftDone
-  RTS
+	LDA joypad1_pressed	;Left
+	AND #CONTROLLER_LEFT
+	BEQ ReadLeftDone
+	RTS
 
 ReadLeftDone:
 
@@ -381,26 +380,26 @@ ReadLeftDone:
 
 ReadA:
 
-  ;;if A is pressed
-  ;;if the text is currently paused (waiting for input), unpause
+	;;if A is pressed
+	;;if the text is currently paused (waiting for input), unpause
 
-  LDA joypad1_pressed
-  AND #CONTROLLER_A
-  BEQ ReadADone
+	LDA joypad1_pressed
+	AND #CONTROLLER_A
+	BEQ ReadADone
   
-  LDA txtPauseFlag
-  CMP #$01
-  BNE ReadADone
+	LDA txtPauseFlag
+	CMP #$01
+	BNE ReadADone
   
-  LDA #$01
-  STA txtPrepareUnpause
+	LDA #$01
+	STA txtPrepareUnpause
   
-  RTS
+	RTS
 
 ReadADone:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  RTS
+	RTS
 
 ;-----------------------------------
 
@@ -473,159 +472,159 @@ LoadCompleteBank:
 
 					;load in the sprite graphics
 
-  LDA GraphicsPointers, X          ;this is all CHR-RAM stuff, not really covered here
-  STA tile_loader_ptr             ;again, you wouldn't hard code this in practice
-  LDA GraphicsPointers+1, X
-  STA tile_loader_ptr+1
+	LDA GraphicsPointers, X          ;this is all CHR-RAM stuff, not really covered here
+	STA tile_loader_ptr             ;again, you wouldn't hard code this in practice
+	LDA GraphicsPointers+1, X
+	STA tile_loader_ptr+1
 
-  LDY #$00
-  LDA $2002
-  LDA [tile_loader_ptr],y
-  STA $2006
-  INC tile_loader_ptr
-  LDA [tile_loader_ptr],y
-  STA $2006
-  INC tile_loader_ptr
-  LDX #$00
-  LDY #$00
+	LDY #$00
+	LDA $2002
+	LDA [tile_loader_ptr],y
+	STA $2006
+	INC tile_loader_ptr
+	LDA [tile_loader_ptr],y
+	STA $2006
+	INC tile_loader_ptr
+	LDX #$00
+	LDY #$00
 .LoadBank:
-  LDA [tile_loader_ptr],y
-  STA $2007
-  INY
-  CPY #$00
-  BNE .LoadBank
-  INC tile_loader_ptr+1
-  INX
-  CPX #$10
-  BNE .LoadBank
+	LDA [tile_loader_ptr],y
+	STA $2007
+	INY
+	CPY #$00
+	BNE .LoadBank
+	INC tile_loader_ptr+1
+	INX
+	CPX #$10
+	BNE .LoadBank
 
-  RTS
+	RTS
 
 ;-------------------------------------------------
 ;PartialBankSetUp:                ;load where to put in the new table
   
-  LDX tile_loader_counter+1                  ;load the addresses
-  LDA LoaderSpecs,X
-  STA tile_loader_addy
-  LDA LoaderSpecs+1,X
-  STA tile_loader_addy+1
+	LDX tile_loader_counter+1                  ;load the addresses
+	LDA LoaderSpecs,X
+	STA tile_loader_addy
+	LDA LoaderSpecs+1,X
+	STA tile_loader_addy+1
 
-  LDA LoaderSpecs+2, X               ;load the number of entries
-  STA tile_loader_stop
+	LDA LoaderSpecs+2, X               ;load the number of entries
+	STA tile_loader_stop
 
-  LDA #LOW(REP_DATA)
-  STA tile_loader_ptr
-  LDA #HIGH(REP_DATA) 
-  STA tile_loader_ptr+1
+	LDA #LOW(REP_DATA)
+	STA tile_loader_ptr
+	LDA #HIGH(REP_DATA) 
+	STA tile_loader_ptr+1
 
-  LDA tile_loader_ptr
-  ORA tile_loader_mark
-  STA tile_loader_ptr
+	LDA tile_loader_ptr
+	ORA tile_loader_mark
+	STA tile_loader_ptr
 
-  LDA tile_loader_ptr+1
-  ORA tile_loader_mark+1
-  STA tile_loader_ptr+1
+	LDA tile_loader_ptr+1
+	ORA tile_loader_mark+1
+	STA tile_loader_ptr+1
 
-  LDA tile_loader_mark
-  CLC
-  ADC tile_loader_stop
-  STA tile_loader_mark
+	LDA tile_loader_mark
+	CLC
+	ADC tile_loader_stop
+	STA tile_loader_mark
   
-  LDA tile_loader_mark+1
-  ADC #$00
-  STA tile_loader_mark+1
+	LDA tile_loader_mark+1
+	ADC #$00
+	STA tile_loader_mark+1
+
+	
+	INC tile_loader_counter
+	INC tile_loader_counter+1
+	INC tile_loader_counter+1
+	INC tile_loader_counter+1
 
   
-  INC tile_loader_counter
-  INC tile_loader_counter+1
-  INC tile_loader_counter+1
-  INC tile_loader_counter+1
 
-  
-
-  LDA tile_loader_counter
-  CMP #$05
-  BNE .done
-  LDA #$00
-  STA tile_loader_counter
-  STA tile_loader_counter+1
-  STA tile_loader_mark
-  STA tile_loader_mark+1
+	LDA tile_loader_counter
+	CMP #$05
+	BNE .done
+	LDA #$00
+	STA tile_loader_counter
+	STA tile_loader_counter+1
+	STA tile_loader_mark
+	STA tile_loader_mark+1
 
 .done
-  RTS
+	RTS
 
 ;-------------------------------------------------
 
 LoadPartialBank:
 
-  LDA $2002
-  LDA tile_loader_addy
-  STA $2006
-  LDA tile_loader_addy+1
-  STA $2006
-  LDY #$00
+	LDA $2002
+	LDA tile_loader_addy
+	STA $2006
+	LDA tile_loader_addy+1
+	STA $2006
+	LDY #$00
 .LoadBank:
-  LDA [tile_loader_ptr],y
-  STA $2007
-  INY
-  CPY tile_loader_stop
-  BNE .LoadBank
+	LDA [tile_loader_ptr],y
+	STA $2007
+	INY
+	CPY tile_loader_stop
+	BNE .LoadBank
   
 .done
-  RTS
+	RTS
 
 ;-------------------------------------------------
 
 IncrementScore:
 
 IncOnes:
-  LDA scoreOnes      ; load the lowest digit of the number
-  CLC 
-  ADC #$01           ; add one
-  STA scoreOnes
-  CMP #$0A           ; check if it overflowed, now equals 10
-  BNE IncDone        ; if there was no overflow, all done
+	LDA scoreOnes      ; load the lowest digit of the number
+	CLC 
+	ADC #$01           ; add one
+	STA scoreOnes
+	CMP #$0A           ; check if it overflowed, now equals 10
+	BNE IncDone        ; if there was no overflow, all done
 IncTens:
-  LDA #$00
-  STA scoreOnes      ; wrap digit to 0
-  LDA scoreTens      ; load the next digit
-  CLC 
-  ADC #$01           ; add one, the carry from previous digit
-  STA scoreTens
-  CMP #$0A           ; check if it overflowed, now equals 10
-  BNE IncDone        ; if there was no overflow, all done
+	LDA #$00
+	STA scoreOnes      ; wrap digit to 0
+	LDA scoreTens      ; load the next digit
+	CLC 
+	ADC #$01           ; add one, the carry from previous digit
+	STA scoreTens
+	CMP #$0A           ; check if it overflowed, now equals 10
+	BNE IncDone        ; if there was no overflow, all done
 IncHundreds:
-  LDA #$00
-  STA scoreTens      ; wrap digit to 0
-  LDA scoreHundreds  ; load the next digit
-  CLC 
-  ADC #$01           ; add one, the carry from previous digit
-  STA scoreHundreds
+	LDA #$00
+	STA scoreTens      ; wrap digit to 0
+	LDA scoreHundreds  ; load the next digit
+	CLC 
+	ADC #$01           ; add one, the carry from previous digit
+	STA scoreHundreds
 IncDone:
 	
 	RTS 
 
 DrawScore:
-  LDA $2002
-  LDA #$20
-  STA $2006
-  LDA #$9B
-  STA $2006          ; start drawing the score at PPU $2020
+	LDA $2002
+	LDA #$20
+	STA $2006
+	LDA #$9B
+	STA $2006          ; start drawing the score at PPU $2020
   
-  LDA scoreHundreds  ; get first digit
+	LDA scoreHundreds  ; get first digit
 ;  CLC
 ;  ADC #$30           ; add ascii offset  (this is UNUSED because the tiles for digits start at 0)
-  STA $2007          ; draw to background
-  LDA scoreTens      ; next digit
+	STA $2007          ; draw to background
+	LDA scoreTens      ; next digit
 ;  CLC
 ;  ADC #$30           ; add ascii offset
-  STA $2007
-  LDA scoreOnes      ; last digit
+	STA $2007
+	LDA scoreOnes      ; last digit
 ;  CLC
 ;  ADC #$30           ; add ascii offset
-  STA $2007
-  RTS
+	STA $2007
+	RTS
 
 ;-- -----------------------------------------------  
 
@@ -640,18 +639,18 @@ DrawScore:
 
 ;;;;;;;;;;;;;;  
   
-  .bank 1
-  .org $A000
+	.bank 1
+	.org $A000
   
 CHR_Data:
 
-  .db $10,$00                  ;background address in the PPU
+	.db $10,$00                  ;background address in the PPU
 
-  .incbin "chrData/Text.chr"
+	.incbin "chrData/Text.chr"
   
 REP_DATA:
 
-  .incbin "chrData/TextRep.chr" ;replacement tiles for background
+	.incbin "chrData/TextRep.chr" ;replacement tiles for background
  
 
   
@@ -663,8 +662,8 @@ REP_DATA:
 ;;;;;;;;;;;;
 ;;;;;;;;;;;;
 
-  .bank 2
-  .org $C000
+	.bank 2
+	.org $C000
   
 Sprite_Data:
 
@@ -681,22 +680,22 @@ Sprite_Data:
 ;;;;;;;;;;;;
 ;;;;;;;;;;;;
 
-  .bank 3
-  .org $E000
+	.bank 3
+	.org $E000
   
 backgroundA:
-  .incbin "nameTables/BackgroundBB.bin"	;background for the game
+	.incbin "nameTables/BackgroundBB.bin"	;background for the game
 palette:
-  .db $37,$30,$10,$0F,  $37,$30,$11,$0F,  $37,$30,$16,$0F,  $37,$30,$2A,$0F   ;;background palette
-  .db $37,$30,$2C,$0F,  $37,$30,$26,$0F,  $37,$1C,$15,$14,  $37,$02,$38,$3C   ;;sprite palette
+	.db $37,$30,$10,$0F,  $37,$30,$11,$0F,  $37,$30,$16,$0F,  $37,$30,$2A,$0F   ;;background palette
+	.db $37,$30,$2C,$0F,  $37,$30,$26,$0F,  $37,$1C,$15,$14,  $37,$02,$38,$3C   ;;sprite palette
   
   
 LoaderSpecs:			;; loader specs for partial bank replacements
-  .db $1B,$00,$40
-  .db $1B,$40,$40
-  .db $1B,$80,$40
-  .db $1B,$C0,$40
-  .db $1C,$00,$40
+	.db $1B,$00,$40
+	.db $1B,$40,$40
+	.db $1B,$80,$40
+	.db $1B,$C0,$40
+	.db $1C,$00,$40
   
 
 GraphicsPointers:
@@ -708,7 +707,7 @@ GraphicsPointers:
 
 	;;text file for this example. if you change it, remember to change the label name in up at the top for when the text is loaded!
 
-	.include "textFiles/NumbText.i"
+	.include "textFiles/sizeTest.i"
 
 ;;;;;;;;;;;;
 ;;;;;;;;;;;;
