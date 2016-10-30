@@ -180,7 +180,9 @@ before the game starts, it would be wise to fill in some default values to start
 	
 	TxtProcess 	  : basic frame based print out
 	TxtEnable	  : enables text engine to start printing
-	TxtDisable	  : disables text, resets box, re-loads current text
+	TxtFullEnable	  : enables text, draws box, sets text to box
+	TxtDisable	  : disables text
+	TxtFullDisable	  : resets text, deletes box
 	TxtPause	  : writes the tile passed in A to the input tile location, sets the pause flag
 	TxtUnpause	  : writes the usual tile back to the input tile location, turns off pause flag
 	TxtLoad		  : loads text data block from passed in values (A - high byte, X- Low byte)
@@ -196,13 +198,11 @@ before the game starts, it would be wise to fill in some default values to start
 	TxtNext		  : goes to next consecutive space on screen to print to
 	TxtSpace	  : adds a space (a call to TxtNext)
 	LineBreak	  : break line (currentnly double spaced)
-	LineBreakHead     : used in reset, since the txtLoc used in reset never leaves the start of the
-			    line.
-	BoxLnBrkHd: 	  : same as the line break head, but single spaced. Currently a placeholder
+	LineBreakHead     : used in reset and box draw, since the txtLoc used in reset never leaves the 			    	    start of the line. (A = offset)
 	TxtIncPtr	  : increments pointer in data block to the next byte
 	PrepareReset	  : prepares to reset the text block
 	TxtReset	  : resets text block based on MaxChr and MaxLin
-	TxtSetBoxDimensions: sets box width and height (A - W, X - H)
+	TxtSetBoxDimensions: sets box width and height (A = W, X = H)
 	TxtSetBoxLocation : sets location of box by top left corner(A - HI, X - LO)
 	TxtSetTextToBox	  : NOT YET IMPLEMENTED- sets text location, pause tile location, max chr and max
 			    lin based on the current box
